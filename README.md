@@ -34,3 +34,12 @@ SafeZone AI is an AI-powered web application that displays area-wise crime risk 
 - User-submitted crime reports.
 - More verified and regularly updated crime data.
 - Additional map filters and features.
+
+## AI usage log
+Be transparent with judges: list where AI helped and what each of you reviewed or changed.
+
+| Date | Tool | What it was used for | Reviewed / changed by |
+|---|---|---|---|
+| 2026-11-22 | Claude | Generated the initial project scaffold, UI components, API and docs from a written brief | All three members |
+| 2026-11-22 | Claude | Helped Umme-Kulsoom run and test the project, fix Gemini timeout and token-limit issues, write docs/API.md and learn the Git team workflow | Umme-Kulsoom |
+| 2026-11-22 | Gemini API | Runtime feature: writes the advisor's summary, tips and emergency actions | n/a (product feature) |
