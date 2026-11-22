@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { color-scheme: dark; scroll-behavior: smooth; }
+  body {
+    @apply bg-ink-950 font-sans text-slate-300 antialiased;
+    background-image:
+      radial-gradient(1100px 600px at 90% -10%, rgba(139,92,246,0.16), transparent 60%),
+      radial-gradient(900px 500px at -10% 25%, rgba(52,224,200,0.08), transparent 60%),
+      radial-gradient(800px 500px at 50% 110%, rgba(63,169,255,0.08), transparent 60%);
+    background-attachment: fixed;
+  }
+  h1, h2, h3, h4 { @apply font-display tracking-tight text-white; }
+  ::selection { background: rgba(52,224,200,0.35); color: #fff; }
+  :focus-visible { outline: 2px solid #34e0c8; outline-offset: 2px; border-radius: 8px; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 999px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+}
+
+@layer components {
+  .glass {
+    @apply border border-white/10 bg-gradient-to-b from-white/[0.065] to-white/[0.02] shadow-glass backdrop-blur-xl;
+  }
+  .glass-input {
+    @apply w-full rounded-2xl border border-white/10 bg-ink-800/70 px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-sonar-400/60 focus:ring-2 focus:ring-sonar-400/20;
+  }
+  .btn-gradient {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-br from-sonar-400 to-sonar-500 px-6 py-3 text-sm font-bold text-ink-950 shadow-glow transition duration-200 hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 active:scale-[0.98];
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:border-white/30 hover:bg-white/10 active:scale-[0.98];
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-slate-300;
+  }
+  .skeleton { @apply relative overflow-hidden bg-white/[0.06]; }
+  .skeleton::after {
+    content: '';
+    @apply absolute inset-0 -translate-x-full;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.09), transparent);
+    animation: shimmer 1.4s infinite;
+  }
+  .text-gradient {
+    @apply bg-gradient-to-r from-sonar-400 to-sonar-500 bg-clip-text text-transparent;
+  }
+}
+
+/* ---- Leaflet, restyled for the dark theme (Module 2 owns this block) ---- */
+.leaflet-container { background: #0a0f1e; font-family: inherit; }
+/* Darken the stock OpenStreetMap tiles instead of needing a second tile provider */
+.leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.85) saturate(0.55); }
+.leaflet-control-zoom a {
+  background: rgba(13,19,36,0.9) !important; color: #e2e8f0 !important;
+  border-color: rgba(255,255,255,0.12) !important;
+}
+.leaflet-control-zoom a:hover { background: rgba(29,38,64,0.95) !important; }
+.leaflet-control-attribution { background: rgba(5,7,15,0.7) !important; color: #94a3b8 !important; font-size: 10px; }
+.leaflet-control-attribution a { color: #7dd3fc !important; }
+.leaflet-tooltip.sz-tooltip {
+  background: rgba(8,12,24,0.95); color: #e2e8f0; border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 12px; padding: 6px 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); font-size: 12px;
+}
+.leaflet-tooltip.sz-tooltip::before { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}

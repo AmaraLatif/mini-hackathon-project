@@ -1,0 +1,12 @@
+{
+  "installCommand": "npm install",
+  "buildCommand": "npm install --prefix client && npm run build --prefix client",
+  "outputDirectory": "client/dist",
+  "functions": {
+    "api/index.js": { "includeFiles": "shared/**" }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

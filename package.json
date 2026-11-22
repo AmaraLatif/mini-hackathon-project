@@ -1,0 +1,30 @@
+{
+  "name": "safezone-ai",
+  "version": "1.0.0",
+  "description": "SafeZone AI - Pakistan public safety and crime monitoring dashboard (official statistics, verified community reports, sample map)",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "install:all": "npm install && npm install --prefix client",
+    "dev": "concurrently -n api,web -c cyan,green \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "node --watch server/index.js",
+    "dev:client": "npm run dev --prefix client",
+    "build": "npm run build --prefix client",
+    "start": "node server/index.js",
+    "test": "node --test server/tests/api.test.js server/tests/gemini.test.js server/tests/reports.test.js server/tests/official.test.js",
+    "import:official": "node server/scripts/import-official.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "pg": "^8.13.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  },
+  "engines": {
+    "node": ">=18.11"
+  },
+  "license": "MIT"
+}
