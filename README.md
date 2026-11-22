@@ -1,4 +1,3 @@
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/ad62fc1a-aebc-4244-8096-bcae6ef671c6" /># mini-hackathon-project
 
 Team Members:
 - Amara Latif
