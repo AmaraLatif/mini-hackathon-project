@@ -26,9 +26,9 @@ SafeZone AI is an AI-powered web application that displays area-wise crime risk 
 - Code Hosting: GitHub
 
 ## 5. Team Roles
-- Member 1: Frontend design, UI and landing page.
-- Member 2: Interactive map, crime data and heatmap.
-- Member 3: Backend API, Gemini AI integration and safety advisor.
+- Member 1: Frontend design, UI and landing page(amara latif)
+- Member 2: Interactive map, crime data and heatmap.(khadija kamanger)
+- Member 3: Backend API, Gemini AI integration and safety advisor.(ummekulsoom)
 
 ## Later
 - User-submitted crime reports.
