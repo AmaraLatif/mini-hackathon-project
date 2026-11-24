@@ -11,6 +11,7 @@ import About from '@/pages/About';
 import Official from '@/pages/Official';
 import Community from '@/pages/Community';
 import Admin from '@/pages/Admin';
+import Auth from '@/pages/Auth';
 import GradientButton from '@/components/ui/GradientButton';
 
 function ScrollToTop() {
@@ -52,6 +53,8 @@ export default function App() {
         <Route element={<SiteLayout />}>
           <Route path="/" element={<Landing />} />
           <Route path="/about" element={<About />} />
+          <Route path="/login" element={<Auth mode="login" />} />
+          <Route path="/signup" element={<Auth mode="signup" />} />
           <Route path="*" element={<NotFound />} />
         </Route>
         <Route element={<AppShell />}>

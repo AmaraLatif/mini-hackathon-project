@@ -19,7 +19,10 @@ export const config = {
   dataDir: process.env.DATA_DIR || path.resolve(here, '../data'),
 
   // ---- Admin access ----
-  // No ADMIN_PASSWORD = admin endpoints are switched off (there is no default password).
+  // The first admin account is created at startup from ADMIN_EMAIL + ADMIN_PASSWORD.
+  // Leave either empty and no admin is seeded (there is no default password). Visitors who
+  // sign up always get the plain "user" role; only an admin can promote someone else.
+  adminEmail: (process.env.ADMIN_EMAIL || '').trim().toLowerCase(),
   adminPassword: process.env.ADMIN_PASSWORD || '',
   // Random per process if unset: admin sessions then end whenever the server restarts.
   authSecret: process.env.AUTH_SECRET || randomBytes(32).toString('hex'),

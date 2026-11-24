@@ -37,3 +37,15 @@ CREATE TABLE IF NOT EXISTS official_stats (
   UNIQUE (source_name, province, district, category, period)
 );
 CREATE INDEX IF NOT EXISTS idx_official_source_period ON official_stats (source_name, period);
+
+-- Accounts. role 'admin' can moderate reports and manage users; signup always creates 'user'.
+CREATE TABLE IF NOT EXISTS users (
+  id             uuid PRIMARY KEY,
+  name           text NOT NULL,
+  email          text NOT NULL,               -- stored lower-case
+  password_hash  text NOT NULL,               -- scrypt$salt$hash, never the password
+  role           text NOT NULL DEFAULT 'user' CHECK (role IN ('user','admin')),
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  last_login_at  timestamptz
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users (email);

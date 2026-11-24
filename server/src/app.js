@@ -10,6 +10,7 @@ import advisorRoutes from './routes/advisorRoutes.js';
 import insightRoutes from './routes/insightRoutes.js';
 import communityRoutes from './routes/communityRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import authRoutes from './routes/authRoutes.js';
 import officialRoutes from './routes/officialRoutes.js';
 import { notFound, errorHandler } from './middleware/errorHandler.js';
 
@@ -31,7 +32,7 @@ app.get('/api/health', (_req, res) => {
     service: 'safezone-ai-api',
     advisor: config.geminiApiKey ? 'gemini' : 'built-in',
     storage: config.databaseUrl ? 'postgres' : 'json-file',
-    admin: config.adminPassword ? 'enabled' : 'disabled',
+    admin: config.adminEmail && config.adminPassword ? 'enabled' : 'disabled',
     time: new Date().toISOString(),
   });
 });
@@ -40,6 +41,7 @@ app.use('/api/crimes', crimeRoutes);
 app.use('/api/advisor', advisorRoutes);
 app.use('/api/official', officialRoutes);
 app.use('/api/community-reports', communityRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api', insightRoutes); // /api/stats and /api/reports/recent
 

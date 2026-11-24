@@ -1,13 +1,12 @@
-import { config } from '../config.js';
-import { verifyToken } from '../services/auth.js';
+import { requireAuth } from './requireAuth.js';
 import { httpError } from '../utils/httpError.js';
 
-/** Protects admin routes: needs "Authorization: Bearer <token>" from POST /api/admin/login. */
-export function requireAdmin(req, _res, next) {
-  if (!config.adminPassword) return next(httpError(503, 'Admin access is not configured on this server (set ADMIN_PASSWORD).'));
-  const header = req.get('authorization') || '';
-  const payload = header.startsWith('Bearer ') ? verifyToken(header.slice(7)) : null;
-  if (!payload || payload.role !== 'admin') return next(httpError(401, 'Admin login required.'));
-  req.admin = payload;
-  next();
+/** Protects admin routes: a signed-in user whose CURRENT role is "admin". 401 = not signed in, 403 = signed in but not admin. */
+export function requireAdmin(req, res, next) {
+  requireAuth(req, res, (err) => {
+    if (err) return next(err);
+    if (req.user.role !== 'admin') return next(httpError(403, 'Admin access only.'));
+    req.admin = req.user;
+    next();
+  });
 }

@@ -23,6 +23,7 @@ export function createJsonStore({ dir }) {
     }
     state.reports ??= [];
     state.official ??= [];
+    state.users ??= [];
     return state;
   }
 
@@ -78,6 +79,49 @@ export function createJsonStore({ dir }) {
       const s = await load();
       const out = { pending: 0, verified: 0, rejected: 0 };
       for (const r of s.reports) out[r.status] += 1;
+      return out;
+    },
+
+    // ---- users ----
+    async getUserById(id) {
+      const s = await load();
+      const u = s.users.find((x) => x.id === id);
+      return u ? copy(u) : null;
+    },
+
+    async getUserByEmail(email) {
+      const s = await load();
+      const u = s.users.find((x) => x.email === email);
+      return u ? copy(u) : null;
+    },
+
+    /** Throws an error with code EMAIL_TAKEN when the email already exists. */
+    async insertUser(user) {
+      const s = await load();
+      if (s.users.some((x) => x.email === user.email)) throw Object.assign(new Error('Email already registered'), { code: 'EMAIL_TAKEN' });
+      s.users.push(copy(user));
+      await persist();
+      return copy(user);
+    },
+
+    async updateUser(id, patch) {
+      const s = await load();
+      const u = s.users.find((x) => x.id === id);
+      if (!u) return null;
+      Object.assign(u, patch);
+      await persist();
+      return copy(u);
+    },
+
+    async listUsers({ limit = 200 } = {}) {
+      const s = await load();
+      return copy([...s.users].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit));
+    },
+
+    async countUsersByRole() {
+      const s = await load();
+      const out = { user: 0, admin: 0 };
+      for (const u of s.users) out[u.role] += 1;
       return out;
     },
 

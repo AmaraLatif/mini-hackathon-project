@@ -4,15 +4,17 @@
  * The landing and about pages keep the original floating Navbar (see SiteLayout in App.jsx).
  */
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { FiBarChart2, FiGrid, FiHome, FiLock, FiPhone, FiUsers } from 'react-icons/fi';
+import { FiBarChart2, FiGrid, FiHome, FiLock, FiLogIn, FiPhone, FiUsers } from 'react-icons/fi';
 import Logo from '@/components/ui/Logo';
+import { useAuth } from '@/context/AuthContext';
 
 const ITEMS = [
   { to: '/dashboard', label: 'Overview', icon: FiGrid },
   { to: '/official', label: 'Official stats', icon: FiBarChart2 },
   { to: '/community', label: 'Community', icon: FiUsers },
-  { to: '/admin', label: 'Admin', icon: FiLock },
 ];
+const ADMIN_ITEM = { to: '/admin', label: 'Admin', icon: FiLock };
+const LOGIN_ITEM = { to: '/login', label: 'Log in', icon: FiLogIn };
 
 const TITLES = {
   '/dashboard': 'Overview',
@@ -41,6 +43,8 @@ function SideLink({ to, label, icon: Icon }) {
 export default function AppShell() {
   const { pathname } = useLocation();
   const title = TITLES[pathname] ?? 'SafeZone AI';
+  const { isAdmin } = useAuth();
+  const items = [...ITEMS, isAdmin ? ADMIN_ITEM : LOGIN_ITEM];
 
   return (
     <div className="min-h-screen lg:pl-[76px]">
@@ -51,7 +55,7 @@ export default function AppShell() {
             <FiHome size={19} />
           </NavLink>
           <span className="my-1 h-px w-7 bg-white/10" />
-          {ITEMS.map((i) => <SideLink key={i.to} {...i} />)}
+          {items.map((i) => <SideLink key={i.to} {...i} />)}
         </div>
       </aside>
 
@@ -78,7 +82,7 @@ export default function AppShell() {
       {/* Mobile tab bar */}
       <nav className="glass fixed inset-x-3 bottom-3 z-[2000] flex justify-around rounded-3xl p-2 lg:hidden" aria-label="Main">
         <SideLink to="/" label="Home" icon={FiHome} />
-        {ITEMS.map((i) => <SideLink key={i.to} {...i} />)}
+        {items.map((i) => <SideLink key={i.to} {...i} />)}
       </nav>
     </div>
   );

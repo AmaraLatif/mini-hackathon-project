@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { FiMenu, FiX } from 'react-icons/fi';
 import Logo from '@/components/ui/Logo';
 import GradientButton from '@/components/ui/GradientButton';
+import { useAuth } from '@/context/AuthContext';
 
 const LINKS = [
   { to: '/', label: 'Home' },
@@ -16,6 +17,7 @@ const LINKS = [
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
+  const { user, logout, isAdmin } = useAuth();
   useEffect(() => setOpen(false), [pathname]);
 
   const linkClass = ({ isActive }) =>
@@ -33,7 +35,18 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-2">
-          <GradientButton to="/dashboard" className="hidden !px-5 !py-2 md:inline-flex">Open dashboard</GradientButton>
+          {user ? (
+            <>
+              {isAdmin && <GradientButton to="/admin" variant="ghost" className="hidden !px-4 !py-2 md:inline-flex">Admin</GradientButton>}
+              <span className="hidden max-w-[10rem] truncate text-sm text-slate-300 md:inline" title={user.email}>{user.name}</span>
+              <button type="button" onClick={logout} className="btn-ghost hidden !px-4 !py-2 md:inline-flex">Sign out</button>
+            </>
+          ) : (
+            <>
+              <GradientButton to="/login" variant="ghost" className="hidden !px-4 !py-2 md:inline-flex">Log in</GradientButton>
+              <GradientButton to="/signup" className="hidden !px-5 !py-2 md:inline-flex">Sign up</GradientButton>
+            </>
+          )}
           <button
             type="button"
             className="grid h-10 w-10 place-items-center rounded-full border border-white/10 text-white md:hidden"
@@ -57,6 +70,17 @@ export default function Navbar() {
             {LINKS.map((l) => (
               <NavLink key={l.to} to={l.to} end={l.to === '/'} className={linkClass}>{l.label}</NavLink>
             ))}
+            {user ? (
+              <>
+                {isAdmin && <NavLink to="/admin" className={linkClass}>Admin</NavLink>}
+                <button type="button" onClick={logout} className={`${linkClass({ isActive: false })} text-left`}>Sign out ({user.name})</button>
+              </>
+            ) : (
+              <>
+                <NavLink to="/login" className={linkClass}>Log in</NavLink>
+                <NavLink to="/signup" className={linkClass}>Sign up</NavLink>
+              </>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

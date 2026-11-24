@@ -1,42 +1,32 @@
 /** Admin moderation: verify real reports, reject duplicate or misleading ones. */
 import { useCallback, useEffect, useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import GlassCard from '@/components/ui/GlassCard';
 import StatusBadge from '@/components/ui/StatusBadge';
-import { adminListReports, adminLogin, adminModerate } from '@/services/dataService';
+import GradientButton from '@/components/ui/GradientButton';
+import { useAuth } from '@/context/AuthContext';
+import { adminListReports, adminListUsers, adminModerate, adminSetRole } from '@/services/dataService';
 import { formatDate } from '@/utils/format';
 
-const TOKEN_KEY = 'safezone-admin-token';
-const TABS = ['pending', 'verified', 'rejected'];
+const TABS = ['pending', 'verified', 'rejected', 'users'];
 
-function Login({ onLogin }) {
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState(null);
-  const [busy, setBusy] = useState(false);
-
-  async function submit(e) {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    try {
-      const { token } = await adminLogin(password);
-      sessionStorage.setItem(TOKEN_KEY, token);
-      onLogin(token);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
+function UserRow({ u, isSelf, busy, onRole }) {
+  const admin = u.role === 'admin';
   return (
-    <GlassCard className="mx-auto max-w-md p-6">
-      <h2 className="text-lg font-bold">Admin sign in</h2>
-      <form onSubmit={submit} className="mt-4 space-y-4">
-        <input type="password" className="glass-input" placeholder="Admin password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" aria-label="Admin password" required />
-        {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
-        <button type="submit" disabled={busy} className="btn-gradient w-full disabled:opacity-60">{busy ? 'Signing in...' : 'Sign in'}</button>
-      </form>
-    </GlassCard>
+    <li className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold text-white">{u.name}{isSelf && <span className="ml-2 text-xs font-normal text-slate-500">(you)</span>}</p>
+        <p className="truncate text-xs text-slate-400">{u.email} · joined {formatDate(u.createdAt)}{u.lastLoginAt ? ` · last login ${formatDate(u.lastLoginAt)}` : ''}</p>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className={`rounded-full border px-3 py-1 text-xs font-semibold capitalize ${admin ? 'border-violet-400/40 bg-violet-500/15 text-violet-200' : 'border-white/10 text-slate-300'}`}>{u.role}</span>
+        {!isSelf && (
+          <button type="button" disabled={busy} onClick={() => onRole(u.id, admin ? 'user' : 'admin')} className="btn-ghost !px-4 !py-2 disabled:opacity-60">
+            {admin ? 'Remove admin' : 'Make admin'}
+          </button>
+        )}
+      </div>
+    </li>
   );
 }
 
@@ -63,40 +53,41 @@ function ReportCard({ report, onDecide, busy }) {
 }
 
 export default function Admin() {
-  const [token, setToken] = useState(() => sessionStorage.getItem(TOKEN_KEY));
+  const { user, token, ready, logout, isAdmin } = useAuth();
   const [tab, setTab] = useState('pending');
   const [data, setData] = useState({ data: [], counts: null });
+  const [userData, setUserData] = useState({ data: [], counts: null });
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-
-  const logout = useCallback(() => {
-    sessionStorage.removeItem(TOKEN_KEY);
-    setToken(null);
-  }, []);
 
   const handleError = useCallback((err) => {
     if (err.status === 401) logout(); // expired or invalid session
     else setError(err.message);
   }, [logout]);
 
+  const load = useCallback((signal) => (
+    tab === 'users'
+      ? adminListUsers(token, { signal }).then(setUserData)
+      : adminListReports(tab, token, { signal }).then(setData)
+  ), [tab, token]);
+
   useEffect(() => {
-    if (!token) return undefined;
+    if (!isAdmin) return undefined;
     const ctrl = new AbortController();
     setLoading(true);
-    adminListReports(tab, token, { signal: ctrl.signal })
-      .then((r) => { setData(r); setError(null); })
+    load(ctrl.signal)
+      .then(() => setError(null))
       .catch((e) => { if (e.name !== 'AbortError') handleError(e); })
       .finally(() => { if (!ctrl.signal.aborted) setLoading(false); });
     return () => ctrl.abort();
-  }, [token, tab, handleError]);
+  }, [isAdmin, load, handleError]);
 
-  async function decide(id, status, note) {
+  async function act(fn) {
     setBusy(true);
     try {
-      await adminModerate(id, status, note, token);
-      const r = await adminListReports(tab, token);
-      setData(r);
+      await fn();
+      await load();
       setError(null);
     } catch (e) {
       handleError(e);
@@ -104,34 +95,59 @@ export default function Admin() {
       setBusy(false);
     }
   }
+  const decide = (id, status, note) => act(() => adminModerate(id, status, note, token));
+  const changeRole = (id, role) => act(() => adminSetRole(id, role, token));
+
+  if (!ready) return <main className="mx-auto max-w-[900px] px-4 pt-10 text-sm text-slate-400">Checking your session...</main>;
+  if (!user) return <Navigate to="/login?next=/admin" replace />;
+
+  if (!isAdmin) {
+    return (
+      <main className="mx-auto max-w-[900px] px-4 pb-20 pt-6 sm:px-6">
+        <GlassCard className="mx-auto max-w-md p-6 text-center">
+          <h1 className="text-xl font-bold">Admins only</h1>
+          <p className="mt-2 text-sm text-slate-400">You are signed in as {user.email}, which does not have admin access.</p>
+          <GradientButton to="/dashboard" className="mt-5">Back to dashboard</GradientButton>
+        </GlassCard>
+      </main>
+    );
+  }
+
+  const label = (t) => (t === 'users' ? `users${userData.counts ? ` (${userData.counts.user + userData.counts.admin})` : ''}` : `${t}${data.counts ? ` (${data.counts[t]})` : ''}`);
 
   return (
     <main className="mx-auto max-w-[900px] px-4 pb-20 pt-6 sm:px-6">
       <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold sm:text-4xl">Admin panel</h1>
-          <p className="mt-2 text-sm text-slate-400">Verify genuine reports. Reject duplicates and misleading submissions.</p>
+          <p className="mt-2 text-sm text-slate-400">Signed in as {user.name}. Verify genuine reports, reject duplicates and manage user roles.</p>
         </div>
-        {token && <button type="button" onClick={logout} className="btn-ghost !px-4 !py-2">Sign out</button>}
+        <button type="button" onClick={logout} className="btn-ghost !px-4 !py-2">Sign out</button>
       </header>
 
-      {!token ? <Login onLogin={setToken} /> : (
-        <>
-          <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Report status">
-            {TABS.map((t) => (
-              <button key={t} type="button" aria-pressed={tab === t} onClick={() => setTab(t)}
-                className={`rounded-full border px-4 py-2 text-sm font-semibold capitalize transition ${tab === t ? 'border-white/25 bg-white/10 text-white' : 'border-white/10 text-slate-400 hover:text-white'}`}>
-                {t}{data.counts ? ` (${data.counts[t]})` : ''}
-              </button>
-            ))}
-          </div>
-          {error && <p role="alert" className="mb-4 rounded-2xl border border-risk-high/30 bg-risk-high/10 px-4 py-3 text-sm text-red-200">{error}</p>}
-          <ul className={`space-y-3 ${loading ? 'opacity-60' : ''}`}>
+      <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Section">
+        {TABS.map((t) => (
+          <button key={t} type="button" aria-pressed={tab === t} onClick={() => setTab(t)}
+            className={`rounded-full border px-4 py-2 text-sm font-semibold capitalize transition ${tab === t ? 'border-white/25 bg-white/10 text-white' : 'border-white/10 text-slate-400 hover:text-white'}`}>
+            {label(t)}
+          </button>
+        ))}
+      </div>
+      {error && <p role="alert" className="mb-4 rounded-2xl border border-risk-high/30 bg-risk-high/10 px-4 py-3 text-sm text-red-200">{error}</p>}
+
+      <ul className={`space-y-3 ${loading ? 'opacity-60' : ''}`}>
+        {tab === 'users' ? (
+          <>
+            {!loading && userData.data.length === 0 && <li className="text-sm text-slate-500">No users yet.</li>}
+            {userData.data.map((u) => <UserRow key={`${u.id}-${u.role}`} u={u} isSelf={u.id === user.id} busy={busy} onRole={changeRole} />)}
+          </>
+        ) : (
+          <>
             {!loading && data.data.length === 0 && <li className="text-sm text-slate-500">No {tab} reports.</li>}
             {data.data.map((r) => <ReportCard key={`${r.id}-${r.status}`} report={r} onDecide={decide} busy={busy} />)}
-          </ul>
-        </>
-      )}
+          </>
+        )}
+      </ul>
     </main>
   );
 }

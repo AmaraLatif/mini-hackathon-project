@@ -11,7 +11,7 @@
     "dev:client": "npm run dev --prefix client",
     "build": "npm run build --prefix client",
     "start": "node server/index.js",
-    "test": "node --test server/tests/api.test.js server/tests/gemini.test.js server/tests/reports.test.js server/tests/official.test.js",
+    "test": "node --test server/tests/api.test.js server/tests/gemini.test.js server/tests/reports.test.js server/tests/official.test.js server/tests/auth.test.js",
     "import:official": "node server/scripts/import-official.js"
   },
   "dependencies": {

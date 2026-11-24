@@ -50,14 +50,25 @@ The score and phone numbers always come from our own code. Gemini only writes th
 - Rate limit per IP, a hidden honeypot field that silently drops bots, and duplicate flagging (same city, area and category within 24 hours).
 - Validation rejects bad categories, too-short text, future or invalid dates and bad coordinates.
 
-## Admin routes
-Admin is **disabled** unless `ADMIN_PASSWORD` is set. There is no default password.
+## Accounts and roles
+Every visitor can create an account. Everyone who signs up is a plain `user`; the role is never read from the request. The first admin is created at server start from `ADMIN_EMAIL` + `ADMIN_PASSWORD`, and an admin can later promote other users. Passwords are stored only as salted scrypt hashes. Tokens are valid for 8 hours; send them as `Authorization: Bearer <token>`.
 
 | Method | Route | Purpose |
 |---|---|---|
-| POST | `/api/admin/login` | Body `{ "password": "..." }`. Returns a session token valid for 8 hours. Rate limit: 5 per minute per IP |
-| GET | `/api/admin/reports?status=` | All reports including rejected ones and contact details. Needs `Authorization: Bearer <token>` |
-| PATCH | `/api/admin/reports/:id` | Body `{ "status": "verified" \| "rejected" \| "pending", "note": "..." }`. Needs the Bearer token. 404 if the id is unknown |
+| POST | `/api/auth/signup` | Body `{ name, email, password }` (password: 8-128 chars, a letter and a number). `201` with `{ token, user }`. `400` with `fields` on bad input, `409` if the email exists. Rate limit: 5 per minute per IP |
+| POST | `/api/auth/login` | Body `{ email, password }`. `{ token, user }`. Same `401` message for a wrong password and an unknown email. Rate limit: 10 per minute per IP |
+| GET | `/api/auth/me` | The signed-in user. Needs the Bearer token |
+
+## Admin routes
+All need a Bearer token of a user whose **current** role is `admin` (`401` = not signed in, `403` = signed in but not admin). Demoting an admin takes effect immediately, even for tokens already issued.
+
+| Method | Route | Purpose |
+|---|---|---|
+| POST | `/api/admin/login` | Same body as `/api/auth/login`, but answers `403` unless the account is an admin. Rate limit: 5 per minute per IP |
+| GET | `/api/admin/reports?status=` | All reports including rejected ones and contact details |
+| PATCH | `/api/admin/reports/:id` | Body `{ "status": "verified" \| "rejected" \| "pending", "note": "..." }`. 404 if the id is unknown |
+| GET | `/api/admin/users` | All users (never the password hash) and counts per role |
+| PATCH | `/api/admin/users/:id/role` | Body `{ "role": "user" \| "admin" }`. An admin cannot change their own role |
 
 ## Environment variables
 | Variable | Needed | Meaning |
@@ -67,14 +78,15 @@ Admin is **disabled** unless `ADMIN_PASSWORD` is set. There is no default passwo
 | `GEMINI_API_KEY` | no | Without it the built-in advisor is used |
 | `GEMINI_MODEL` | no | Gemini model name (check Google's model list) |
 | `DATABASE_URL` | on Vercel | PostgreSQL connection string. Without it a local JSON file is used |
-| `ADMIN_PASSWORD` | for admin | Enables the admin panel |
+| `ADMIN_EMAIL` | for admin | Email of the first admin account (created at startup) |
+| `ADMIN_PASSWORD` | for admin | Password of that account. Changing it here changes the admin's password at next start |
 | `AUTH_SECRET` | for admin | Signs admin tokens. Use a long random string |
 
 Never commit `.env`. Only `.env.example` (with empty values) is committed.
 
 ## Storage
 - **Local:** `server/data/store.json` (no setup).
-- **PostgreSQL:** set `DATABASE_URL`. Tables `community_reports` and `official_stats` are created automatically at startup from `server/src/db/schema.sql`.
+- **PostgreSQL:** set `DATABASE_URL`. Tables `users`, `community_reports` and `official_stats` are created automatically at startup from `server/src/db/schema.sql`.
 
 ## Official data import
 ```bash
@@ -87,4 +99,4 @@ Columns: `province, district, category, period (YYYY-MM or YYYY), cases, source_
 ```bash
 npm test
 ```
-22 tests cover the API, Gemini fallback, report validation, moderation, rate limiting, official data rules and the JSON store.
+31 tests cover the API, Gemini fallback, report validation, moderation, rate limiting, official data rules and the JSON store.

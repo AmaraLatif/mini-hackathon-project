@@ -1,7 +1,9 @@
 /** auth.js - tiny signed-token admin auth using only node:crypto (no JWT library). */
-import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
+import { promisify } from 'node:util';
 import { config } from '../config.js';
 
+const scryptAsync = promisify(scrypt);
 const b64 = (s) => Buffer.from(s).toString('base64url');
 const sign = (body, secret) => createHmac('sha256', secret).update(body).digest('base64url');
 const digest = (s) => createHash('sha256').update(String(s)).digest();
@@ -30,4 +32,24 @@ export function verifyToken(token, { secret = config.authSecret, now = Date.now(
   } catch {
     return null;
   }
+}
+
+// ---- User passwords: salted scrypt (built into Node, no bcrypt dependency) ----
+const KEY_LEN = 64;
+
+/** Returns "scrypt$<salt>$<hash>". A fresh random salt means equal passwords never share a hash. */
+export async function hashPassword(password) {
+  const salt = randomBytes(16);
+  const key = await scryptAsync(String(password), salt, KEY_LEN);
+  return `scrypt$${salt.toString('base64url')}$${key.toString('base64url')}`;
+}
+
+/** Constant-time check of a password against a stored hash. Never throws on a malformed hash. */
+export async function verifyPassword(password, stored) {
+  if (typeof stored !== 'string') return false;
+  const [scheme, salt, hash] = stored.split('$');
+  if (scheme !== 'scrypt' || !salt || !hash) return false;
+  const expected = Buffer.from(hash, 'base64url');
+  const actual = await scryptAsync(String(password), Buffer.from(salt, 'base64url'), expected.length);
+  return actual.length === expected.length && timingSafeEqual(actual, expected);
 }

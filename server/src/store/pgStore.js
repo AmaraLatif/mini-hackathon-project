@@ -28,6 +28,12 @@ const toReport = (r) => ({
   createdAt: iso(r.created_at),
 });
 
+const toUser = (r) => ({
+  id: r.id, name: r.name, email: r.email, passwordHash: r.password_hash, role: r.role,
+  createdAt: iso(r.created_at), lastLoginAt: iso(r.last_login_at),
+});
+const USER_COLS = 'id, name, email, password_hash, role, created_at, last_login_at';
+
 const REPORT_COLS = `id, city, area, category, description, incident_date::text AS incident_date,
   latitude, longitude, contact, status, duplicate_of, moderation_note, moderated_at, ip_hash, created_at`;
 
@@ -86,6 +92,53 @@ export async function createPgStore({ connectionString }) {
       const { rows } = await pool.query('SELECT status, count(*)::int AS n FROM community_reports GROUP BY status');
       const out = { pending: 0, verified: 0, rejected: 0 };
       for (const r of rows) out[r.status] = r.n;
+      return out;
+    },
+
+    // ---- users ----
+    async getUserById(id) {
+      const { rows } = await pool.query(`SELECT ${USER_COLS} FROM users WHERE id = $1`, [id]);
+      return rows[0] ? toUser(rows[0]) : null;
+    },
+
+    async getUserByEmail(email) {
+      const { rows } = await pool.query(`SELECT ${USER_COLS} FROM users WHERE email = $1`, [email]);
+      return rows[0] ? toUser(rows[0]) : null;
+    },
+
+    /** Throws an error with code EMAIL_TAKEN when the email already exists. */
+    async insertUser(u) {
+      try {
+        await pool.query(
+          'INSERT INTO users (id, name, email, password_hash, role, created_at) VALUES ($1,$2,$3,$4,$5,$6)',
+          [u.id, u.name, u.email, u.passwordHash, u.role, u.createdAt]
+        );
+      } catch (e) {
+        if (e.code === '23505') throw Object.assign(new Error('Email already registered'), { code: 'EMAIL_TAKEN' });
+        throw e;
+      }
+      return u;
+    },
+
+    async updateUser(id, patch) {
+      const { rows } = await pool.query(
+        `UPDATE users SET role = COALESCE($2, role), password_hash = COALESCE($3, password_hash),
+                          last_login_at = COALESCE($4, last_login_at)
+          WHERE id = $1 RETURNING ${USER_COLS}`,
+        [id, patch.role ?? null, patch.passwordHash ?? null, patch.lastLoginAt ?? null]
+      );
+      return rows[0] ? toUser(rows[0]) : null;
+    },
+
+    async listUsers({ limit = 200 } = {}) {
+      const { rows } = await pool.query(`SELECT ${USER_COLS} FROM users ORDER BY created_at DESC LIMIT $1`, [limit]);
+      return rows.map(toUser);
+    },
+
+    async countUsersByRole() {
+      const { rows } = await pool.query('SELECT role, count(*)::int AS n FROM users GROUP BY role');
+      const out = { user: 0, admin: 0 };
+      for (const r of rows) out[r.role] = r.n;
       return out;
     },
 
